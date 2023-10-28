@@ -8,7 +8,7 @@ type DeckStore = {
     clearDeck: () => void;
 };
 
-const useDeck = create<DeckStore>((set) => ({
+const useDeck = create<DeckStore>()((set) => ({
     deck: [],
     addCard: (card: Card) =>
         set((state: DeckStore) => {
