@@ -2,12 +2,26 @@ import { create } from 'zustand';
 import { Card } from '../types/Card';
 import { persist } from 'zustand/middleware';
 
-type DeckStore = {
-    deck: Card[];
+type Deck = Card[];
+
+type DeckState = { deck: Deck };
+
+type DeckAction = {
     addCard: (card: Card) => void;
     removeCard: (card: Card) => void;
     clearDeck: () => void;
 };
+
+type DeckStore = DeckState & DeckAction;
+
+const maxDeckSize = 40 as const;
+const deckIsFull = (deck: Deck): boolean => deck.length >= maxDeckSize;
+
+const cardReachedLimit = (deck: Deck, card: Card): boolean =>
+    deck.filter(({ name }) => name === card.name).length >= card.limit;
+
+const removeElementAtIndex = <T>(arr: T[], iToRemove: number) =>
+    arr.filter((_, i) => i !== iToRemove);
 
 const useDeck = create<DeckStore>()(
     persist(
@@ -15,38 +29,26 @@ const useDeck = create<DeckStore>()(
             deck: [],
             addCard: (card: Card) =>
                 set((state: DeckStore) => {
-                    //Checking if deck is full
-                    if (state.deck.length >= 40) return {};
-
-                    //Checking if card reached max
                     if (
-                        state.deck.filter((unit) => unit.name === card.name)
-                            .length >= card.limit
-                    )
+                        deckIsFull(state.deck) ||
+                        cardReachedLimit(state.deck, card)
+                    ) {
                         return {};
+                    }
 
                     //Add card
                     return { deck: [...state.deck, card] };
                 }),
             removeCard: (card: Card) =>
                 set((state: DeckStore) => {
-                    //Getting index to remove
                     const indexToRemove = state.deck.indexOf(card);
-
-                    //Avoiding mutations
-                    const newArray = [...state.deck];
-
-                    //Removing card
-                    newArray.splice(indexToRemove, 1);
-
-                    //Setting new deck
-                    return { deck: newArray };
+                    return {
+                        deck: removeElementAtIndex(state.deck, indexToRemove),
+                    };
                 }),
             clearDeck: () => set({ deck: [] }),
         }),
-        {
-            name: 'decked-out-card-builder-storage',
-        }
+        { name: 'decked-out-builder-deck' }
     )
 );
 
